@@ -1,0 +1,19 @@
+scanner_id,scanner_name,target_id,target_name,target_color,target_job_title,convo_tip
+7963d4da,Alice Cohen,647d03d2,Bob Levy,red,Backend Engineer,Talk about side projects
+7963d4da,Alice Cohen,7b4d256b,Frank Peretz,blue,Data Analyst,Discuss data insights
+7963d4da,Alice Cohen,1c5e4799,Dan Mizrahi,green,Product Manager,Ask about career journey
+647d03d2,Bob Levy,1c5e4799,Dan Mizrahi,red,Product Manager,Ask about career journey
+647d03d2,Bob Levy,a93eb187,Carol Shapira,blue,UX Designer,Discuss design trends
+647d03d2,Bob Levy,7963d4da,Alice Cohen,green,Developer,Ask about favorite tech stack
+a93eb187,Carol Shapira,647d03d2,Bob Levy,red,Backend Engineer,Talk about side projects
+a93eb187,Carol Shapira,7963d4da,Alice Cohen,blue,Developer,Ask about favorite tech stack
+a93eb187,Carol Shapira,1c5e4799,Dan Mizrahi,green,Product Manager,Ask about career journey
+1c5e4799,Dan Mizrahi,7b4d256b,Frank Peretz,red,Data Analyst,Discuss data insights
+1c5e4799,Dan Mizrahi,7963d4da,Alice Cohen,blue,Developer,Ask about favorite tech stack
+1c5e4799,Dan Mizrahi,a93eb187,Carol Shapira,green,UX Designer,Discuss design trends
+107914b0,Eva Katz,1c5e4799,Dan Mizrahi,red,Product Manager,Ask about career journey
+107914b0,Eva Katz,7963d4da,Alice Cohen,blue,Developer,Ask about favorite tech stack
+107914b0,Eva Katz,7b4d256b,Frank Peretz,green,Data Analyst,Discuss data insights
+7b4d256b,Frank Peretz,7963d4da,Alice Cohen,red,Developer,Ask about favorite tech stack
+7b4d256b,Frank Peretz,647d03d2,Bob Levy,blue,Backend Engineer,Talk about side projects
+7b4d256b,Frank Peretz,107914b0,Eva Katz,green,Team Lead,Talk about leadership style

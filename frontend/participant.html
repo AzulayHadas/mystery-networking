@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="en" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mystery Networking - משתתף</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#6366f1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    
+    <!-- QR Scanner Library -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            min-height: 100vh;
+            color: #fff;
+            padding: 20px;
+            position: relative;
+        }
+        
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="0.5" fill="%23ffffff" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>') repeat;
+            pointer-events: none;
+            z-index: 1;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            animation: fadeInUp 0.6s ease-out;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 15px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            font-weight: 700;
+            color: #ffffff;
+        }
+        
+        .header p {
+            font-size: 1.1em;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+            margin-bottom: 10px;
+        }
+        
+        .score-display {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(20px);
+            border-radius: 25px;
+            padding: 25px;
+            margin-bottom: 30px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            animation: pulse 2s ease-in-out infinite alternate;
+        }
+        
+        .score-display h2 {
+            font-size: 3.5em;
+            margin: 15px 0;
+            font-weight: 800;
+            color: #ffd700;
+            text-shadow: 2px 2px 6px rgba(0,0,0,0.5);
+        }
+        
+        .mission-card {
+            background: rgba(255, 255, 255, 0.98);
+            color: #2d3748;
+            border-radius: 25px;
+            padding: 35px;
+            margin-bottom: 25px;
+            box-shadow: 0 15px 45px rgba(0,0,0,0.15), 0 5px 15px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            animation: slideInUp 0.8s ease-out;
+        }
+        
+        .mission-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.2), 0 10px 25px rgba(0,0,0,0.15);
+        }
+        
+        .mission-card h3 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            font-weight: 700;
+            text-align: center;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 15px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+        }
+        
+        .target-info {
+            background: linear-gradient(135deg, #f7fafc, #edf2f7);
+            padding: 25px;
+            border-radius: 20px;
+            margin: 20px 0;
+            border: 2px solid #e2e8f0;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.06);
+        }
+        
+        .completed-mission {
+            background: linear-gradient(135deg, #48bb78, #38a169);
+            color: white;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .completed-mission::before {
+            content: '✨';
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 1.5em;
+            animation: sparkle 1.5s ease-in-out infinite;
+        }
+        
+        .active-mission {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: 3px solid #4c51bf;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .active-mission::before {
+            content: '🎯';
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 1.5em;
+            animation: bounce 2s ease-in-out infinite;
+        }
+        
+        .mission-details {
+            padding: 20px 0;
+            line-height: 1.6;
+        }
+        
+        .target-name {
+            font-size: 1.4em;
+            font-weight: 700;
+            margin: 15px 0 10px 0;
+            color: #1a202c;
+            text-shadow: none;
+        }
+        
+        .target-job {
+            color: #2d3748;
+            font-size: 1.1em;
+            margin: 10px 0 15px 0;
+            font-weight: 500;
+        }
+        
+        .target-color {
+            margin: 15px 0 20px 0;
+            font-size: 1em;
+            font-weight: 600;
+            color: #2d3748;
+        }
+        
+        .color-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: bold;
+            text-transform: uppercase;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            border: 2px solid rgba(255,255,255,0.3);
+        }
+        
+        .conversation-tip {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        
+        .conversation-tip h4 {
+            color: #ffd700;
+            margin-bottom: 8px;
+        }
+        
+        .mission-instructions {
+            background: rgba(255,255,255,0.05);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .mission-instructions p {
+            margin: 5px 0;
+            font-size: 0.95em;
+        }
+        
+        .error-message {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .target-info .name {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        
+        .mission-item {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+        
+        .mission-item.user-mission {
+            border: 2px solid #ffd700;
+            background: rgba(255, 215, 0, 0.1);
+        }
+        
+        .mission-item.highlighted {
+            background: rgba(255, 255, 255, 0.15);
+        }
+        
+        .all-missions h4 {
+            color: #94a3b8;
+            font-size: 1.1em;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .color-badge {
+            display: inline-block;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        
+        .color-badge.red { background: #ef4444; color: white; }
+        .color-badge.blue { background: #3b82f6; color: white; }
+        .color-badge.green { background: #10b981; color: white; }
+        .color-badge.yellow { background: #f59e0b; color: white; }
+        .color-badge.purple { background: #8b5cf6; color: white; }
+        
+        .scan-button {
+            width: 100%;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            font-size: 1.3em;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 20px 0;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .scan-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+        
+        .scan-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 35px rgba(102, 126, 234, 0.6);
+        }
+        
+        .scan-button:hover::before {
+            left: 100%;
+        }
+        
+        .scan-button:active {
+            transform: translateY(0);
+        }
+        
+        #qr-reader {
+            display: none;
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+        
+        .result-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .result-modal.show {
+            display: flex;
+        }
+        
+        .result-content {
+            background: white;
+            color: #333;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 500px;
+            text-align: center;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        .result-icon {
+            font-size: 5em;
+            margin-bottom: 20px;
+        }
+        
+        .result-content h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+        
+        .points-earned {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #10b981;
+            margin: 20px 0;
+        }
+        
+        .linkedin-preview {
+            background: #f0f4ff;
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+            text-align: right;
+        }
+        
+        .close-button {
+            width: 100%;
+            padding: 15px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1em;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+        }
+        
+        .spinner {
+            border: 4px solid rgba(255,255,255,0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Mission List Styles */
+        .missions-list {
+            margin-bottom: 20px;
+        }
+
+        .missions-intro {
+            text-align: center;
+            margin: 15px 0 25px 0;
+            color: #2d3748;
+            font-size: 1em;
+            font-weight: 500;
+        }
+
+        .mission-item {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .mission-item.completed-mission {
+            background: rgba(34, 197, 94, 0.9);
+            border-color: #22c55e;
+            color: white;
+        }
+        
+        .mission-item.completed-mission h4 {
+            color: white;
+        }
+        
+        .mission-item.completed-mission .target-job {
+            color: #f0fdf4;
+        }
+
+        .mission-item.pending-mission {
+            background: rgba(255, 255, 255, 0.95);
+            border-color: rgba(99, 126, 234, 0.3);
+            color: #1a202c;
+        }
+        
+        .mission-item.pending-mission h4 {
+            color: #1a202c;
+        }
+        
+        .mission-item.pending-mission .target-job {
+            color: #2d3748;
+        }
+        
+        .mission-item.pending-mission .conversation-tip {
+            background: rgba(99, 126, 234, 0.1);
+            color: #1a202c;
+        }
+        
+        .mission-item.pending-mission .conversation-tip h5 {
+            color: #667eea;
+        }
+        
+        .mission-item.pending-mission .conversation-tip p {
+            color: #2d3748;
+        }
+
+        .mission-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .mission-status {
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        .mission-points {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 5px 10px;
+            border-radius: 10px;
+            font-size: 0.9em;
+            font-weight: bold;
+        }
+
+        .mission-item h4 {
+            margin: 10px 0 5px 0;
+            font-size: 1.3em;
+            color: #1a202c;
+        }
+
+        .mission-item .target-job {
+            color: #2d3748;
+            margin: 5px 0 10px 0;
+            font-size: 1em;
+        }
+
+        .mission-item .target-color {
+            margin: 10px 0;
+            font-size: 0.9em;
+        }
+
+        .conversation-tip {
+            background: rgba(99, 126, 234, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+            border: 1px solid rgba(99, 126, 234, 0.2);
+        }
+
+        .conversation-tip h5 {
+            margin: 0 0 8px 0;
+            color: #667eea;
+            font-size: 1em;
+            font-weight: 700;
+        }
+
+        .conversation-tip p {
+            margin: 0;
+            line-height: 1.5;
+            color: #2d3748;
+        }
+
+        .scan-instructions {
+            background: rgba(99, 126, 234, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 20px;
+            text-align: center;
+            border: 1px solid rgba(99, 126, 234, 0.2);
+        }
+
+        .scan-instructions p {
+            margin: 10px 0;
+            line-height: 1.6;
+            color: #2d3748;
+            font-weight: 500;
+        }
+
+        .no-missions {
+            text-align: center;
+            padding: 40px 20px;
+            color: #2d3748;
+        }
+        
+        /* Animations */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes slideInUp {
+            from { opacity: 0; transform: translateY(50px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes pulse {
+            from { transform: scale(1); }
+            to { transform: scale(1.02); }
+        }
+        
+        @keyframes sparkle {
+            0%, 100% { transform: scale(1) rotate(0deg); }
+            50% { transform: scale(1.2) rotate(180deg); }
+        }
+        
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-10px); }
+            60% { transform: translateY(-5px); }
+        }
+
+        /* Dark Mode */
+        [data-theme="dark"] body,
+        html[data-theme="dark"] body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+        }
+        [data-theme="dark"] .mission-card,
+        [data-theme="dark"] .modal-body {
+            background: rgba(30, 41, 59, 0.95);
+            border-color: rgba(148, 163, 184, 0.2);
+        }
+        [data-theme="dark"] .mission-card h3,
+        [data-theme="dark"] .score-display div,
+        [data-theme="dark"] .mission-text,
+        [data-theme="dark"] .no-missions {
+            color: #e2e8f0;
+        }
+        [data-theme="dark"] .mission-card p {
+            color: #a0aec0;
+        }
+        [data-theme="dark"] #emailInput {
+            background: #2d3748;
+            color: #e2e8f0;
+            border-color: #4a5568;
+        }
+        [data-theme="dark"] .autocomplete-list {
+            background: #2d3748;
+            border-color: #667eea;
+        }
+        [data-theme="dark"] .autocomplete-item {
+            color: #e2e8f0;
+            border-bottom-color: #4a5568;
+        }
+        [data-theme="dark"] .result-details {
+            color: #a0aec0;
+        }
+
+        /* Autocomplete */
+        .autocomplete-wrapper {
+            position: relative;
+            width: 100%;
+        }
+        .autocomplete-list {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: #fff;
+            border: 2px solid #667eea;
+            border-top: none;
+            border-radius: 0 0 10px 10px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 100;
+            display: none;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+        }
+        .autocomplete-list.show {
+            display: block;
+        }
+        .autocomplete-item {
+            padding: 12px 15px;
+            cursor: pointer;
+            font-size: 0.95em;
+            border-bottom: 1px solid #eee;
+            direction: ltr;
+            text-align: left;
+        }
+        .autocomplete-item:last-child {
+            border-bottom: none;
+        }
+        .autocomplete-item:hover,
+        .autocomplete-item.active {
+            background: #667eea;
+            color: #fff;
+        }
+        .autocomplete-item mark {
+            background: transparent;
+            color: inherit;
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Screen -->
+    <div id="loginScreen" class="container">
+        <div class="header">
+            <h1>🎯 Mystery Networking</h1>
+            <p>ברוכים הבאים למשחק הנטוורקינג!</p>
+        </div>
+        
+        <div class="mission-card">
+            <h3>התחברות</h3>
+            <div class="autocomplete-wrapper">
+                <input type="email" id="emailInput" placeholder="הזן אימייל" autocomplete="off"
+                       style="width: 100%; padding: 15px; border: 2px solid #ddd; border-radius: 10px; font-size: 1em; margin: 15px 0;"
+                       onkeypress="if(event.key==='Enter'){ hideAutocomplete(); login(); }">
+                <div id="autocompleteList" class="autocomplete-list"></div>
+            </div>
+            <button id="loginButton" class="scan-button" onclick="login()">התחבר</button>
+            <div id="loginError" style="color: #ef4444; margin-top: 10px; display: none;"></div>
+        </div>
+    </div>
+    
+    <!-- Main App -->
+    <div id="mainApp" class="container" style="display: none;">
+        <div class="header">
+            <h1>🎯 Mystery Networking</h1>
+            <div class="score-display">
+                <div>הניקוד שלך</div>
+                <h2 id="scoreDisplay">0</h2>
+                <div id="userName"></div>
+            </div>
+        </div>
+        
+        <!-- Mission Card -->
+        <div class="mission-card">
+            <div id="missionContent">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>טוען...</p>
+                </div>
+            </div>
+            
+            <!-- QR Scanner -->
+            <div id="qr-reader"></div>
+            
+            <button class="scan-button" onclick="startScanning()">
+                📸 סרוק תג QR
+            </button>
+            
+            <!-- Manual QR Input (for testing) -->
+            <div style="margin: 20px 0; padding: 20px; background: rgba(255,255,255,0.1); border-radius: 15px;">
+                <h4 style="margin: 0 0 15px 0; color: #fff; font-size: 1em;">🔧 בדיקה ידנית</h4>
+                <input type="text" id="manualQrInput" placeholder="הזן QR ID לבדיקה" 
+                       style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 0.9em; margin-bottom: 10px;">
+                <button onclick="testManualScan()" style="width: 100%; padding: 10px; background: #667eea; color: white; border: none; border-radius: 8px; font-size: 0.9em;">
+                    ✅ בדוק QR ידנית
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Result Modal -->
+    <div id="resultModal" class="result-modal">
+        <div class="result-content">
+            <div class="result-icon" id="resultIcon">🎉</div>
+            <h2 id="resultTitle">מצאת את היעד!</h2>
+            <div id="resultMessage"></div>
+            <div class="points-earned" id="pointsEarned">+100</div>
+            
+            <div class="linkedin-preview" id="linkedinPreview">
+                <p><strong id="scannedName">שם המשתתף</strong></p>
+                <p id="conversationTip" style="margin-top: 10px; color: #666;"></p>
+                <div id="linkedinLink" style="margin-top: 15px; display: none;">
+                    <a href="#" id="linkedinUrl" target="_blank" style="color: #0077b5; text-decoration: none; font-weight: bold; padding: 10px; border: 1px solid #0077b5; border-radius: 5px; display: inline-block;">
+                        🔗 פתח פרופיל LinkedIn
+                    </a>
+                    <p style="font-size: 12px; color: #999; margin-top: 5px;">
+                        (יפתח אוטומטית בעוד 2 שניות)
+                    </p>
+                </div>
+            </div>
+            
+            <button class="close-button" onclick="closeResult()">סיימתי שיחה</button>
+        </div>
+    </div>
+    
+    <!-- Firebase Config -->
+    <script src="js/firebase-config.js"></script>
+    
+    <!-- Email Autocomplete -->
+    <script>
+    (function() {
+        let emailList = [];
+        let activeIdx = -1;
+
+        const apiUrl = window.API_URL || 'http://localhost:5000/api';
+        fetch(apiUrl + '/participants/emails')
+            .then(r => r.json())
+            .then(d => { emailList = d.emails || []; })
+            .catch(() => {});
+
+        const input = document.getElementById('emailInput');
+        const list = document.getElementById('autocompleteList');
+
+        function renderList(filtered, query) {
+            list.innerHTML = '';
+            activeIdx = -1;
+            if (!filtered.length || !query) { list.classList.remove('show'); return; }
+            filtered.forEach((email, i) => {
+                const div = document.createElement('div');
+                div.className = 'autocomplete-item';
+                const idx = email.toLowerCase().indexOf(query.toLowerCase());
+                if (idx >= 0) {
+                    div.innerHTML = email.substring(0, idx) +
+                        '<mark>' + email.substring(idx, idx + query.length) + '</mark>' +
+                        email.substring(idx + query.length);
+                } else {
+                    div.textContent = email;
+                }
+                div.addEventListener('mousedown', function(e) {
+                    e.preventDefault();
+                    input.value = email;
+                    list.classList.remove('show');
+                });
+                list.appendChild(div);
+            });
+            list.classList.add('show');
+        }
+
+        input.addEventListener('input', function() {
+            const q = this.value.trim().toLowerCase();
+            if (q.length < 1) { list.classList.remove('show'); return; }
+            const filtered = emailList.filter(e => e.toLowerCase().includes(q)).slice(0, 8);
+            renderList(filtered, q);
+        });
+
+        input.addEventListener('keydown', function(e) {
+            const items = list.querySelectorAll('.autocomplete-item');
+            if (!items.length) return;
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                activeIdx = Math.min(activeIdx + 1, items.length - 1);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                activeIdx = Math.max(activeIdx - 1, 0);
+            } else if (e.key === 'Enter' && activeIdx >= 0) {
+                e.preventDefault();
+                input.value = items[activeIdx].textContent;
+                list.classList.remove('show');
+                return;
+            } else if (e.key === 'Escape') {
+                list.classList.remove('show'); return;
+            } else { return; }
+            items.forEach(it => it.classList.remove('active'));
+            items[activeIdx].classList.add('active');
+            items[activeIdx].scrollIntoView({ block: 'nearest' });
+        });
+
+        input.addEventListener('blur', function() {
+            setTimeout(() => list.classList.remove('show'), 150);
+        });
+
+        window.hideAutocomplete = function() { list.classList.remove('show'); };
+    })();
+    </script>
+
+    <!-- Theme Switcher -->
+    <script src="js/trendy-theme.js"></script>
+    
+    <!-- Main App Logic -->
+    <script src="js/participant-js.js"></script>
+</body>
+</html>

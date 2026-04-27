@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mystery Networking - Admin Panel</title>
+    
+    <!-- API Configuration -->
+    <script src="js/firebase-config.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #fff;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .admin-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .admin-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+        
+        .admin-card h3 {
+            margin-bottom: 20px;
+            color: #fff;
+            font-size: 1.3em;
+        }
+        
+        .action-button {
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 15px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .action-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .stats-display {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 10px 0;
+        }
+        
+        .quick-links {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+        
+        .quick-link {
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            text-decoration: none;
+            color: white;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        
+        .quick-link:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Dark Mode */
+        [data-theme="dark"] body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🗺️ לוח בקרה - Mystery Networking</h1>
+            <p>מרכז שליטה וניהול אירוע</p>
+        </div>
+        
+        <div class="admin-grid">
+            <div class="admin-card">
+                <h3>📊 סטטיסטיקות זמן אמת</h3>
+                <div class="stats-display" id="liveStats">
+                    <div>👥 משתתפים: <span id="totalParticipants">-</span></div>
+                    <div>📱 סריקות: <span id="totalScans">-</span></div>
+                    <div>⭐ ניקוד ממוצע: <span id="avgScore">-</span></div>
+                </div>
+                <button class="action-button" onclick="refreshStats()">🔄 רענן סטטיסטיקות</button>
+            </div>
+            
+            <div class="admin-card">
+                <h3>🔧 פעולות מנהל</h3>
+                <button class="action-button" onclick="resetAllScores()">🔄 איפוס כל הניקודים</button>
+                <button class="action-button" onclick="exportData()">💾 ייצוא נתונים</button>
+                <button class="action-button" onclick="viewLogs()">📄 צפייה בלוגים</button>
+            </div>
+        </div>
+        
+        <div class="admin-card">
+            <h3>🔗 קישורים מהירים</h3>
+            <div class="quick-links">
+                <a href="participant.html" class="quick-link" target="_blank">📱 אפליקציית משתתף</a>
+                <a href="dashboard.html" class="quick-link" target="_blank">📊 לוח מחווים</a>
+                <a href="admin-setup.html" class="quick-link" target="_blank">⚙️ הגדרת אירוע</a>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Admin panel JavaScript
+        const API_URL = window.API_URL || 'http://localhost:5000/api';
+        
+        // Load stats on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            refreshStats();
+            setInterval(refreshStats, 5000); // Auto refresh every 5 seconds
+        });
+        
+        async function refreshStats() {
+            try {
+                const response = await fetch(`${API_URL}/stats`);
+                const data = await response.json();
+                
+                document.getElementById('totalParticipants').textContent = data.total_participants || 0;
+                document.getElementById('totalScans').textContent = data.total_scans || 0;
+                document.getElementById('avgScore').textContent = (data.completion_rate || 0) + '%';
+                
+                console.log('✅ Stats refreshed:', data);
+            } catch (error) {
+                console.error('❌ Error loading stats:', error);
+                document.getElementById('totalParticipants').textContent = 'Error';
+                document.getElementById('totalScans').textContent = 'Error';
+                document.getElementById('avgScore').textContent = 'Error';
+            }
+        }
+        
+        function resetAllScores() {
+            if (confirm('האם אתה בטוח שברצונך לאפס את כל הניקודים?')) {
+                alert('פיצר זה לא מימש עדיין - להישאר בטוח!');
+            }
+        }
+        
+        function exportData() {
+            window.open(`${API_URL}/leaderboard`, '_blank');
+        }
+        
+        function viewLogs() {
+            alert('צפייה בלוגים זמינה בקונסול של הסרוור');
+        }
+    </script>
+    <script src="js/trendy-theme.js"></script>
+</body>
+</html>

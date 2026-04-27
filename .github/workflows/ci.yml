@@ -1,0 +1,88 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install linter
+        run: pip install flake8
+
+      - name: Run flake8
+        run: |
+          flake8 backend/ --max-line-length=120 --ignore=E501,W503,E402 --count --show-source --statistics
+
+  test:
+    runs-on: ubuntu-latest
+    needs: lint
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Cache pip packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('backend/requirements.txt', 'requirements-test.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          pip install -r requirements-test.txt
+
+      - name: Validate data files
+        run: |
+          python -c "
+          import pandas as pd, sys
+          # Validate teams.csv
+          t = pd.read_csv('data/teams.csv')
+          for col in ['color','name','emoji','description']:
+              assert col in t.columns, f'teams.csv missing {col}'
+          assert t['color'].is_unique, 'Duplicate team colors'
+          print(f'teams.csv OK: {len(t)} teams')
+
+          # Validate participants_trial.csv
+          p = pd.read_csv('data/participants_trial.csv')
+          for col in ['full_name','email','linkedin_url','genre_color','convo_tip']:
+              assert col in p.columns, f'participants_trial.csv missing {col}'
+          assert not p['email'].str.lower().str.strip().duplicated().any(), 'Duplicate emails'
+          print(f'participants_trial.csv OK: {len(p)} participants')
+          "
+
+      - name: Run tests with coverage
+        run: |
+          pytest --cov=backend --cov-report=term-missing --cov-report=xml -v
+
+      - name: Check coverage threshold
+        run: |
+          coverage report --fail-under=70
+
+      - name: Upload coverage report
+        if: matrix.python-version == '3.12'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.xml

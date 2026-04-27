@@ -1,0 +1,1445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mystery Networking - Event Setup</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/trendy-theme.css">
+    
+    <!-- API Configuration -->
+    <script src="js/firebase-config.js"></script>
+    
+    <!-- QR Code and ZIP libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    
+    <style>
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding-top: 60px;
+        }
+
+        .setup-subtitle {
+            font-size: 1.3rem;
+            color: var(--text-secondary);
+            margin-bottom: 30px;
+        }
+
+        .setup-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 24px;
+            margin-bottom: 40px;
+        }
+
+        .setup-section {
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-light);
+            border-radius: 24px;
+            padding: 28px;
+            box-shadow: var(--shadow-medium);
+            transition: all var(--transition-medium);
+        }
+
+        .setup-section:hover {
+            box-shadow: var(--shadow-strong);
+            border-color: var(--border-accent);
+        }
+
+        .section-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .section-icon {
+            font-size: 1.8rem;
+        }
+
+        .upload-area {
+            border: 2px dashed var(--border-light);
+            border-radius: 16px;
+            padding: 32px;
+            text-align: center;
+            cursor: pointer;
+            transition: all var(--transition-medium);
+            background: var(--bg-glass);
+            margin-bottom: 16px;
+        }
+
+        .upload-area:hover, .upload-area.drag-over {
+            border-color: var(--accent-primary);
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .upload-area.has-file {
+            border-color: var(--success-color);
+            background: rgba(76, 175, 80, 0.1);
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            margin-bottom: 12px;
+        }
+
+        .upload-text {
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .upload-hint {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .setup-btn {
+            background: var(--accent-gradient);
+            color: white;
+            border: none;
+            border-radius: 14px;
+            padding: 14px 24px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--transition-medium);
+            width: 100%;
+            margin-top: 12px;
+        }
+
+        .setup-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-medium);
+        }
+
+        .setup-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .setup-btn.secondary {
+            background: var(--secondary-gradient);
+        }
+
+        .setup-btn.success {
+            background: linear-gradient(135deg, #4CAF50, #43a047);
+        }
+
+        /* Data Preview Tables */
+        .data-preview {
+            margin-top: 20px;
+            grid-column: 1 / -1;
+        }
+
+        .preview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .preview-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .preview-badge {
+            background: var(--accent-gradient);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .data-table-wrapper {
+            overflow-x: auto;
+            border-radius: 12px;
+            border: 1px solid var(--border-light);
+            background: var(--bg-secondary);
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        .data-table th {
+            background: var(--accent-gradient);
+            color: white;
+            padding: 12px 16px;
+            text-align: left;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 0.8rem;
+            white-space: nowrap;
+        }
+
+        .data-table td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-light);
+            color: var(--text-primary);
+        }
+
+        .data-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .data-table tr:hover td {
+            background: var(--bg-glass);
+        }
+
+        .team-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .team-badge.blue { background: rgba(59, 130, 246, 0.2); color: #3b82f6; }
+        .team-badge.red { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+        .team-badge.green { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
+        .team-badge.yellow { background: rgba(234, 179, 8, 0.2); color: #eab308; }
+        .team-badge.purple { background: rgba(168, 85, 247, 0.2); color: #a855f7; }
+
+        /* Status Messages */
+        .status-message {
+            padding: 12px 16px;
+            border-radius: 12px;
+            margin-top: 16px;
+            font-size: 0.9rem;
+            display: none;
+        }
+
+        .status-message.success {
+            background: rgba(76, 175, 80, 0.15);
+            color: #4CAF50;
+            border: 1px solid rgba(76, 175, 80, 0.3);
+            display: block;
+        }
+
+        .status-message.error {
+            background: rgba(244, 67, 54, 0.15);
+            color: #f44336;
+            border: 1px solid rgba(244, 67, 54, 0.3);
+            display: block;
+        }
+
+        .status-message.info {
+            background: rgba(99, 102, 241, 0.15);
+            color: var(--accent-primary);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            display: block;
+        }
+
+        /* CSV Format Help */
+        .format-help {
+            background: var(--bg-glass);
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 16px;
+            border: 1px solid var(--border-light);
+        }
+
+        .format-help-title {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+        }
+
+        .format-help-content {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            font-family: 'Monaco', 'Consolas', monospace;
+            background: var(--bg-secondary);
+            padding: 10px;
+            border-radius: 8px;
+            overflow-x: auto;
+        }
+
+        /* Tabs for Table Views */
+        .table-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .table-tab {
+            padding: 10px 20px;
+            background: var(--bg-glass);
+            border: 1px solid var(--border-light);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .table-tab:hover {
+            background: var(--bg-secondary);
+            border-color: var(--border-accent);
+        }
+
+        .table-tab.active {
+            background: var(--accent-gradient);
+            color: white;
+            border-color: transparent;
+        }
+
+        .table-content {
+            display: none;
+        }
+
+        .table-content.active {
+            display: block;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-muted);
+        }
+
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 12px;
+        }
+
+        /* Quick Links */
+        .quick-links {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+            flex-wrap: wrap;
+        }
+
+        .quick-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            background: var(--bg-glass);
+            border: 1px solid var(--border-light);
+            border-radius: 10px;
+            color: var(--text-primary);
+            text-decoration: none;
+            font-weight: 500;
+            transition: all var(--transition-fast);
+        }
+
+        .quick-link:hover {
+            background: var(--bg-secondary);
+            transform: translateY(-2px);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .setup-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .container {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container fade-in">
+        <div class="header">
+            <h1 class="trendy-title">⚙️ Event Setup</h1>
+            <p class="setup-subtitle">Upload your CSV files to configure participants and teams</p>
+        </div>
+
+        <!-- Bulk Upload Zone -->
+        <div class="setup-section" style="margin-bottom: 24px;">
+            <h2 class="section-title">
+                <span class="section-icon">📦</span>
+                Bulk Upload (Drop All CSVs)
+            </h2>
+            
+            <div class="upload-area" id="bulkUploadArea" onclick="document.getElementById('bulkFiles').click()" style="padding: 48px; border-width: 3px;">
+                <div class="upload-icon" style="font-size: 4rem;">📂</div>
+                <div class="upload-text" style="font-size: 1.2rem; font-weight: 600;">Drop all CSV files here at once</div>
+                <div class="upload-hint" style="margin-top: 12px;">Auto-detects: teams.csv, participants.csv (or qr_mapping.csv), target_assignments.csv</div>
+                <div class="upload-hint" style="margin-top: 8px; color: var(--accent-primary);">✨ Files are sorted automatically by their headers or filename</div>
+            </div>
+            <input type="file" id="bulkFiles" class="file-input" accept=".csv" multiple onchange="handleBulkUpload(event)">
+            
+            <div id="bulkStatus" class="status-message" style="margin-top: 12px;"></div>
+        </div>
+
+        <div class="setup-grid">
+            <!-- Teams CSV Upload -->
+            <div class="setup-section">
+                <h2 class="section-title">
+                    <span class="section-icon">👥</span>
+                    Teams Configuration
+                </h2>
+                
+                <div class="upload-area" id="teamsUploadArea" onclick="document.getElementById('teamsFile').click()">
+                    <div class="upload-icon">📁</div>
+                    <div class="upload-text">Drop teams.csv here or click to upload</div>
+                    <div class="upload-hint">Required columns: color, name, emoji, description</div>
+                </div>
+                <input type="file" id="teamsFile" class="file-input" accept=".csv" onchange="handleTeamsUpload(event)">
+                
+                <div id="teamsStatus" class="status-message"></div>
+                
+                <div class="format-help">
+                    <div class="format-help-title">📋 Expected Format:</div>
+                    <div class="format-help-content">
+color,name,emoji,description,job_title
+blue,Tech Innovators,💼,Technology Team,Tech Lead
+red,Creative Minds,❤️,Design Team,Designer
+                    </div>
+                </div>
+            </div>
+
+            <!-- Participants CSV Upload -->
+            <div class="setup-section">
+                <h2 class="section-title">
+                    <span class="section-icon">🎫</span>
+                    Participants Data
+                </h2>
+                
+                <div class="upload-area" id="participantsUploadArea" onclick="document.getElementById('participantsFile').click()">
+                    <div class="upload-icon">📁</div>
+                    <div class="upload-text">Drop participants.csv here or click to upload</div>
+                    <div class="upload-hint">Required columns: email, full_name, job_title, genre_color</div>
+                </div>
+                <input type="file" id="participantsFile" class="file-input" accept=".csv" onchange="handleParticipantsUpload(event)">
+                
+                <div id="participantsStatus" class="status-message"></div>
+                
+                <div class="format-help">
+                    <div class="format-help-title">📋 Expected Format:</div>
+                    <div class="format-help-content">
+email,full_name,job_title,genre_color,linkedin_url
+john@email.com,John Doe,Developer,blue,https://linkedin.com/in/johndoe
+jane@email.com,Jane Smith,Designer,red,https://linkedin.com/in/janesmith
+                    </div>
+                </div>
+            </div>
+
+            <!-- Target Assignments Upload -->
+            <div class="setup-section">
+                <h2 class="section-title">
+                    <span class="section-icon">🎯</span>
+                    Target Assignments
+                </h2>
+                
+                <div class="upload-area" id="targetsUploadArea" onclick="document.getElementById('targetsFile').click()">
+                    <div class="upload-icon">📁</div>
+                    <div class="upload-text">Drop target_assignments.csv here or click to upload</div>
+                    <div class="upload-hint">Maps scanners to their targets</div>
+                </div>
+                <input type="file" id="targetsFile" class="file-input" accept=".csv" onchange="handleTargetsUpload(event)">
+                
+                <div id="targetsStatus" class="status-message"></div>
+                
+                <div class="format-help">
+                    <div class="format-help-title">📋 Expected Format:</div>
+                    <div class="format-help-content">
+scanner_id,target_id,target_name,target_color,target_job_title,convo_tip
+abc123,def456,John Doe,blue,Developer,Ask about projects
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="setup-section">
+                <h2 class="section-title">
+                    <span class="section-icon">🚀</span>
+                    Actions
+                </h2>
+                
+                <button class="setup-btn" onclick="loadCurrentData()">
+                    🔄 Load Current Data
+                </button>
+                
+                <button class="setup-btn secondary" onclick="generateQRCodes()" style="margin-top: 12px;">
+                    📱 Generate QR Codes
+                </button>
+                
+                <button class="setup-btn success" onclick="saveConfiguration()" style="margin-top: 12px;" id="saveBtn" disabled>
+                    💾 Save Configuration
+                </button>
+                
+                <button class="setup-btn" onclick="clearCacheAndReload()" style="margin-top: 12px; background: linear-gradient(135deg, #e74c3c, #c0392b);">
+                    🗑️ Clear Cache & Reload
+                </button>
+                
+                <div class="quick-links">
+                    <a href="admin.html" class="quick-link">
+                        <span>👥</span> Admin Panel
+                    </a>
+                    <a href="dashboard.html" class="quick-link">
+                        <span>📊</span> Dashboard
+                    </a>
+                    <a href="index.html" class="quick-link">
+                        <span>🏠</span> Home
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Preview Section -->
+        <div class="setup-section data-preview" id="dataPreviewSection">
+            <h2 class="section-title">
+                <span class="section-icon">📊</span>
+                Data Preview
+            </h2>
+            
+            <div class="table-tabs">
+                <button class="table-tab active" onclick="showTable('teams')">👥 Teams</button>
+                <button class="table-tab" onclick="showTable('participants')">🎫 Participants</button>
+                <button class="table-tab" onclick="showTable('targets')">🎯 Target Assignments</button>
+                <button class="table-tab" onclick="showTable('qr')">📱 QR Mappings</button>
+            </div>
+            
+            <!-- Teams Table -->
+            <div class="table-content active" id="teamsTable">
+                <div class="preview-header">
+                    <span class="preview-title">Teams Configuration</span>
+                    <span class="preview-badge" id="teamsCount">0 teams</span>
+                </div>
+                <div class="data-table-wrapper">
+                    <table class="data-table" id="teamsDataTable">
+                        <thead>
+                            <tr>
+                                <th>Color</th>
+                                <th>Name</th>
+                                <th>Emoji</th>
+                                <th>Description</th>
+                                <th>Job Title</th>
+                            </tr>
+                        </thead>
+                        <tbody id="teamsTableBody">
+                            <tr>
+                                <td colspan="5">
+                                    <div class="empty-state">
+                                        <div class="empty-state-icon">📂</div>
+                                        <div>No teams data loaded. Upload a CSV or click "Load Current Data".</div>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Participants Table -->
+            <div class="table-content" id="participantsTable">
+                <div class="preview-header">
+                    <span class="preview-title">Participants List</span>
+                    <span class="preview-badge" id="participantsCount">0 participants</span>
+                </div>
+                <div class="data-table-wrapper">
+                    <table class="data-table" id="participantsDataTable">
+                        <thead>
+                            <tr>
+                                <th>User ID</th>
+                                <th>Email</th>
+                                <th>Full Name</th>
+                                <th>Job Title</th>
+                                <th>Team</th>
+                                <th>LinkedIn</th>
+                            </tr>
+                        </thead>
+                        <tbody id="participantsTableBody">
+                            <tr>
+                                <td colspan="6">
+                                    <div class="empty-state">
+                                        <div class="empty-state-icon">📂</div>
+                                        <div>No participants data loaded. Upload a CSV or click "Load Current Data".</div>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Targets Table -->
+            <div class="table-content" id="targetsTable">
+                <div class="preview-header">
+                    <span class="preview-title">Target Assignments</span>
+                    <span class="preview-badge" id="targetsCount">0 assignments</span>
+                </div>
+                <div class="data-table-wrapper">
+                    <table class="data-table" id="targetsDataTable">
+                        <thead>
+                            <tr>
+                                <th>Scanner ID</th>
+                                <th>Target ID</th>
+                                <th>Target Name</th>
+                                <th>Team</th>
+                                <th>Job Title</th>
+                                <th>Conversation Tip</th>
+                            </tr>
+                        </thead>
+                        <tbody id="targetsTableBody">
+                            <tr>
+                                <td colspan="6">
+                                    <div class="empty-state">
+                                        <div class="empty-state-icon">📂</div>
+                                        <div>No target assignments loaded. Upload a CSV or click "Load Current Data".</div>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- QR Mappings Table -->
+            <div class="table-content" id="qrTable">
+                <div class="preview-header">
+                    <span class="preview-title">QR Code Mappings</span>
+                    <span class="preview-badge" id="qrCount">0 mappings</span>
+                </div>
+                <div class="data-table-wrapper">
+                    <table class="data-table" id="qrDataTable">
+                        <thead>
+                            <tr>
+                                <th>User ID</th>
+                                <th>Email</th>
+                                <th>Full Name</th>
+                                <th>Job Title</th>
+                                <th>Team</th>
+                                <th>LinkedIn</th>
+                            </tr>
+                        </thead>
+                        <tbody id="qrTableBody">
+                            <tr>
+                                <td colspan="6">
+                                    <div class="empty-state">
+                                        <div class="empty-state-icon">📂</div>
+                                        <div>No QR mappings loaded. Click "Load Current Data" to view existing data.</div>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/trendy-theme.js"></script>
+    <script>
+        // Store parsed CSV data
+        let teamsData = [];
+        let participantsData = [];
+        let targetsData = [];
+        let qrData = [];
+
+        // LocalStorage cache key
+        const CACHE_KEY = 'mysteryNetworkingSetupData';
+
+        // Save data to localStorage
+        function saveToCache() {
+            const cacheData = {
+                teamsData: teamsData,
+                participantsData: participantsData,
+                targetsData: targetsData,
+                qrData: qrData,
+                timestamp: Date.now()
+            };
+            try {
+                localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
+                console.log('✅ Configuration cached to localStorage');
+            } catch (e) {
+                console.warn('Could not save to localStorage:', e);
+            }
+        }
+
+        // Load data from localStorage
+        function loadFromCache() {
+            try {
+                const cached = localStorage.getItem(CACHE_KEY);
+                if (cached) {
+                    const cacheData = JSON.parse(cached);
+                    // Check if cache is less than 24 hours old
+                    const cacheAge = Date.now() - (cacheData.timestamp || 0);
+                    const maxAge = 24 * 60 * 60 * 1000; // 24 hours
+                    
+                    if (cacheAge < maxAge) {
+                        if (cacheData.teamsData && cacheData.teamsData.length > 0) {
+                            teamsData = cacheData.teamsData;
+                            updateTeamsTable(teamsData);
+                            showStatus('teams', 'info', `ℹ️ Loaded ${teamsData.length} teams from cache`);
+                        }
+                        if (cacheData.participantsData && cacheData.participantsData.length > 0) {
+                            participantsData = cacheData.participantsData;
+                            updateParticipantsTable(participantsData);
+                            showStatus('participants', 'info', `ℹ️ Loaded ${participantsData.length} participants from cache`);
+                        }
+                        if (cacheData.targetsData && cacheData.targetsData.length > 0) {
+                            targetsData = cacheData.targetsData;
+                            updateTargetsTable(targetsData);
+                            showStatus('targets', 'info', `ℹ️ Loaded ${targetsData.length} targets from cache`);
+                        }
+                        if (cacheData.qrData && cacheData.qrData.length > 0) {
+                            qrData = cacheData.qrData;
+                            updateQRTable(qrData);
+                        }
+                        updateSaveButton();
+                        console.log('✅ Configuration restored from localStorage cache');
+                        return true;
+                    } else {
+                        console.log('⚠️ Cache expired, fetching fresh data');
+                        localStorage.removeItem(CACHE_KEY);
+                    }
+                }
+            } catch (e) {
+                console.warn('Could not load from localStorage:', e);
+            }
+            return false;
+        }
+
+        // Clear cache
+        function clearCache() {
+            localStorage.removeItem(CACHE_KEY);
+            console.log('🗑️ Cache cleared');
+        }
+
+        // Clear cache and reload from server
+        function clearCacheAndReload() {
+            clearCache();
+            // Reset local data
+            teamsData = [];
+            participantsData = [];
+            targetsData = [];
+            qrData = [];
+            // Clear UI
+            updateTeamsTable([]);
+            updateParticipantsTable([]);
+            updateTargetsTable([]);
+            updateQRTable([]);
+            // Clear status messages
+            showStatus('teams', '', '');
+            showStatus('participants', '', '');
+            showStatus('targets', '', '');
+            // Remove has-file class
+            document.querySelectorAll('.upload-area').forEach(area => area.classList.remove('has-file'));
+            // Reload from server
+            loadCurrentData();
+            console.log('🔄 Cache cleared and reloading from server');
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            setupDragAndDrop();
+            // Always load from server by default
+            loadCurrentData();
+        });
+
+        // Setup drag and drop for all upload areas
+        function setupDragAndDrop() {
+            const uploadAreas = document.querySelectorAll('.upload-area');
+            
+            uploadAreas.forEach(area => {
+                area.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    area.classList.add('drag-over');
+                });
+                
+                area.addEventListener('dragleave', () => {
+                    area.classList.remove('drag-over');
+                });
+                
+                area.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    area.classList.remove('drag-over');
+                    
+                    const files = e.dataTransfer.files;
+                    const areaId = area.id;
+                    
+                    // Bulk upload area - handle multiple files
+                    if (areaId === 'bulkUploadArea') {
+                        handleBulkFiles(files);
+                        return;
+                    }
+                    
+                    // Single file upload areas
+                    const file = files[0];
+                    if (file && file.name.endsWith('.csv')) {
+                        if (areaId === 'teamsUploadArea') {
+                            processCSVFile(file, 'teams');
+                        } else if (areaId === 'participantsUploadArea') {
+                            processCSVFile(file, 'participants');
+                        } else if (areaId === 'targetsUploadArea') {
+                            processCSVFile(file, 'targets');
+                        }
+                    }
+                });
+            });
+        }
+
+        // Handle bulk file upload from input
+        function handleBulkUpload(event) {
+            const files = event.target.files;
+            handleBulkFiles(files);
+        }
+
+        // Process multiple CSV files and auto-detect their types
+        function handleBulkFiles(files) {
+            const csvFiles = Array.from(files).filter(f => f.name.endsWith('.csv'));
+            
+            if (csvFiles.length === 0) {
+                showBulkStatus('error', '❌ No CSV files found. Please drop .csv files.');
+                return;
+            }
+            
+            showBulkStatus('info', `⏳ Processing ${csvFiles.length} file(s)...`);
+            
+            let processed = 0;
+            let results = [];
+            
+            csvFiles.forEach(file => {
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    const csv = e.target.result;
+                    const type = detectCSVType(file.name, csv);
+                    
+                    if (type) {
+                        processCSVFile(file, type);
+                        results.push(`✅ ${file.name} → ${type}`);
+                    } else {
+                        results.push(`⚠️ ${file.name} → unknown format`);
+                    }
+                    
+                    processed++;
+                    if (processed === csvFiles.length) {
+                        showBulkStatus('success', `📦 Processed ${csvFiles.length} file(s):\n${results.join('\n')}`);
+                    }
+                };
+                
+                reader.readAsText(file);
+            });
+        }
+
+        // Auto-detect CSV type by filename or headers
+        function detectCSVType(filename, csvContent) {
+            const lowerName = filename.toLowerCase();
+            const firstLine = csvContent.split('\n')[0].toLowerCase();
+            
+            // Check by filename first
+            if (lowerName.includes('team')) {
+                return 'teams';
+            }
+            if (lowerName.includes('participant') || lowerName.includes('qr_mapping') || lowerName.includes('qr-mapping')) {
+                return 'participants';
+            }
+            if (lowerName.includes('target') || lowerName.includes('assignment') || lowerName.includes('mission')) {
+                return 'targets';
+            }
+            
+            // Check by headers
+            if (firstLine.includes('emoji') && firstLine.includes('color') && firstLine.includes('name')) {
+                return 'teams';
+            }
+            if (firstLine.includes('scanner_id') && firstLine.includes('target_id')) {
+                return 'targets';
+            }
+            if (firstLine.includes('email') && (firstLine.includes('full_name') || firstLine.includes('user_id'))) {
+                return 'participants';
+            }
+            
+            // Could not detect
+            return null;
+        }
+
+        // Show bulk upload status
+        function showBulkStatus(status, message) {
+            const statusEl = document.getElementById('bulkStatus');
+            statusEl.className = `status-message ${status}`;
+            statusEl.style.whiteSpace = 'pre-line';
+            statusEl.textContent = message;
+        }
+
+        // Handle file uploads
+        function handleTeamsUpload(event) {
+            const file = event.target.files[0];
+            if (file) processCSVFile(file, 'teams');
+        }
+
+        function handleParticipantsUpload(event) {
+            const file = event.target.files[0];
+            if (file) processCSVFile(file, 'participants');
+        }
+
+        function handleTargetsUpload(event) {
+            const file = event.target.files[0];
+            if (file) processCSVFile(file, 'targets');
+        }
+
+        // Parse CSV file
+        function processCSVFile(file, type) {
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                const csv = e.target.result;
+                const data = parseCSV(csv);
+                
+                if (data.length === 0) {
+                    showStatus(type, 'error', '❌ Failed to parse CSV. Please check the file format.');
+                    return;
+                }
+                
+                // Store data and update UI
+                switch(type) {
+                    case 'teams':
+                        teamsData = data;
+                        updateTeamsTable(data);
+                        document.getElementById('teamsUploadArea').classList.add('has-file');
+                        showStatus('teams', 'success', `✅ Loaded ${data.length} teams from ${file.name}`);
+                        break;
+                    case 'participants':
+                        participantsData = data;
+                        updateParticipantsTable(data);
+                        document.getElementById('participantsUploadArea').classList.add('has-file');
+                        showStatus('participants', 'success', `✅ Loaded ${data.length} participants from ${file.name}`);
+                        break;
+                    case 'targets':
+                        targetsData = data;
+                        updateTargetsTable(data);
+                        document.getElementById('targetsUploadArea').classList.add('has-file');
+                        showStatus('targets', 'success', `✅ Loaded ${data.length} target assignments from ${file.name}`);
+                        break;
+                }
+                
+                // Enable save button if we have data
+                updateSaveButton();
+                
+                // Cache to localStorage
+                saveToCache();
+            };
+            
+            reader.readAsText(file);
+        }
+
+        // Parse CSV string to array of objects
+        function parseCSV(csv) {
+            const lines = csv.trim().split('\n');
+            if (lines.length < 2) return [];
+            
+            const headers = lines[0].split(',').map(h => h.trim().replace(/^["']|["']$/g, ''));
+            const data = [];
+            
+            for (let i = 1; i < lines.length; i++) {
+                const values = parseCSVLine(lines[i]);
+                if (values.length === headers.length) {
+                    const row = {};
+                    headers.forEach((header, index) => {
+                        row[header] = values[index].trim().replace(/^["']|["']$/g, '');
+                    });
+                    data.push(row);
+                }
+            }
+            
+            return data;
+        }
+
+        // Parse a single CSV line (handles quotes)
+        function parseCSVLine(line) {
+            const result = [];
+            let current = '';
+            let inQuotes = false;
+            
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                
+                if (char === '"' && !inQuotes) {
+                    inQuotes = true;
+                } else if (char === '"' && inQuotes) {
+                    inQuotes = false;
+                } else if (char === ',' && !inQuotes) {
+                    result.push(current);
+                    current = '';
+                } else {
+                    current += char;
+                }
+            }
+            
+            result.push(current);
+            return result;
+        }
+
+        // Update table displays
+        function updateTeamsTable(data) {
+            const tbody = document.getElementById('teamsTableBody');
+            document.getElementById('teamsCount').textContent = `${data.length} teams`;
+            
+            if (data.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state"><div class="empty-state-icon">📂</div><div>No teams data</div></div></td></tr>`;
+                return;
+            }
+            
+            tbody.innerHTML = data.map(team => `
+                <tr>
+                    <td><span class="team-badge ${team.color}">${team.color}</span></td>
+                    <td>${team.name || '-'}</td>
+                    <td style="font-size: 1.5rem;">${team.emoji || '🎯'}</td>
+                    <td>${team.description || '-'}</td>
+                    <td>${team.job_title || '-'}</td>
+                </tr>
+            `).join('');
+        }
+
+        function updateParticipantsTable(data) {
+            const tbody = document.getElementById('participantsTableBody');
+            document.getElementById('participantsCount').textContent = `${data.length} participants`;
+            
+            if (data.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="empty-state-icon">📂</div><div>No participants data</div></div></td></tr>`;
+                return;
+            }
+            
+            tbody.innerHTML = data.map(p => `
+                <tr>
+                    <td><code style="font-size: 0.8rem;">${p.user_id || '-'}</code></td>
+                    <td>${p.email || '-'}</td>
+                    <td><strong>${p.full_name || '-'}</strong></td>
+                    <td>${p.job_title || '-'}</td>
+                    <td><span class="team-badge ${p.genre_color || ''}">${p.genre_color || '-'}</span></td>
+                    <td>${p.linkedin_url ? `<a href="${p.linkedin_url}" target="_blank" style="color: #0077b5;">🔗 LinkedIn</a>` : '-'}</td>
+                </tr>
+            `).join('');
+        }
+
+        function updateTargetsTable(data) {
+            const tbody = document.getElementById('targetsTableBody');
+            document.getElementById('targetsCount').textContent = `${data.length} assignments`;
+            
+            if (data.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="empty-state-icon">📂</div><div>No target assignments</div></div></td></tr>`;
+                return;
+            }
+            
+            tbody.innerHTML = data.map(t => `
+                <tr>
+                    <td><code style="font-size: 0.8rem;">${t.scanner_id || '-'}</code></td>
+                    <td><code style="font-size: 0.8rem;">${t.target_id || '-'}</code></td>
+                    <td><strong>${t.target_name || '-'}</strong></td>
+                    <td><span class="team-badge ${t.target_color || ''}">${t.target_color || '-'}</span></td>
+                    <td>${t.target_job_title || '-'}</td>
+                    <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis;">${t.convo_tip || '-'}</td>
+                </tr>
+            `).join('');
+        }
+
+        function updateQRTable(data) {
+            const tbody = document.getElementById('qrTableBody');
+            document.getElementById('qrCount').textContent = `${data.length} mappings`;
+            
+            if (data.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="empty-state-icon">📂</div><div>No QR mappings</div></div></td></tr>`;
+                return;
+            }
+            
+            tbody.innerHTML = data.map(q => `
+                <tr>
+                    <td><code style="font-size: 0.8rem;">${q.user_id || '-'}</code></td>
+                    <td>${q.email || '-'}</td>
+                    <td><strong>${q.full_name || '-'}</strong></td>
+                    <td>${q.job_title || '-'}</td>
+                    <td><span class="team-badge ${q.genre_color || ''}">${q.genre_color || '-'}</span></td>
+                    <td>${q.linkedin_url ? `<a href="${q.linkedin_url}" target="_blank" style="color: #0077b5;">🔗 LinkedIn</a>` : '-'}</td>
+                </tr>
+            `).join('');
+        }
+
+        // Tab switching
+        function showTable(tableName) {
+            // Update tabs
+            document.querySelectorAll('.table-tab').forEach(tab => tab.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // Update content
+            document.querySelectorAll('.table-content').forEach(content => content.classList.remove('active'));
+            document.getElementById(`${tableName}Table`).classList.add('active');
+        }
+
+        // Status messages
+        function showStatus(type, status, message) {
+            const statusEl = document.getElementById(`${type}Status`);
+            statusEl.className = `status-message ${status}`;
+            statusEl.textContent = message;
+        }
+
+        // Update save button state
+        function updateSaveButton() {
+            const saveBtn = document.getElementById('saveBtn');
+            saveBtn.disabled = !(teamsData.length > 0 || participantsData.length > 0 || targetsData.length > 0);
+        }
+
+        // Load current data from server
+        async function loadCurrentData() {
+            // Clear old cache when explicitly loading from server
+            clearCache();
+            
+            let loadedFromServer = false;
+            try {
+                const apiUrl = window.API_URL || 'http://127.0.0.1:5000/api';
+                
+                // Load teams
+                try {
+                    const teamsRes = await fetch(`${apiUrl}/teams`);
+                    if (teamsRes.ok) {
+                        const teamsJson = await teamsRes.json();
+                        if (teamsJson.teams && teamsJson.teams.length > 0) {
+                            teamsData = teamsJson.teams;
+                            updateTeamsTable(teamsData);
+                            showStatus('teams', 'info', `ℹ️ Loaded ${teamsData.length} teams from server`);
+                            loadedFromServer = true;
+                        }
+                    }
+                } catch (e) {
+                    console.log('Could not load teams:', e);
+                }
+                
+                // Load participants (QR mappings)
+                try {
+                    const participantsRes = await fetch(`${apiUrl}/participants`);
+                    if (participantsRes.ok) {
+                        const participantsJson = await participantsRes.json();
+                        if (Array.isArray(participantsJson) && participantsJson.length > 0) {
+                            qrData = participantsJson.map(p => ({
+                                user_id: p.id || p.user_id || 'unknown',
+                                email: p.email || '',
+                                full_name: p.name || p.full_name || '',
+                                job_title: p.job_title || '',
+                                genre_color: p.color || p.team || p.genre_color || '',
+                                linkedin_url: p.linkedin_url || ''
+                            }));
+                            participantsData = qrData;
+                            updateParticipantsTable(qrData);
+                            updateQRTable(qrData);
+                            showStatus('participants', 'info', `ℹ️ Loaded ${qrData.length} participants from server`);
+                            loadedFromServer = true;
+                        }
+                    }
+                } catch (e) {
+                    console.log('Could not load participants:', e);
+                }
+                
+                // Load missions/targets
+                try {
+                    const missionsRes = await fetch(`${apiUrl}/missions`);
+                    if (missionsRes.ok) {
+                        const missionsJson = await missionsRes.json();
+                        // API returns array directly or in .value property
+                        let assignments = [];
+                        if (Array.isArray(missionsJson)) {
+                            assignments = missionsJson;
+                        } else if (missionsJson.value && Array.isArray(missionsJson.value)) {
+                            assignments = missionsJson.value;
+                        } else if (missionsJson.assignments && Array.isArray(missionsJson.assignments)) {
+                            assignments = missionsJson.assignments;
+                        }
+                        if (assignments.length > 0) {
+                            targetsData = assignments;
+                            updateTargetsTable(targetsData);
+                            showStatus('targets', 'info', `ℹ️ Loaded ${targetsData.length} target assignments from server`);
+                            loadedFromServer = true;
+                        }
+                    }
+                } catch (e) {
+                    console.log('Could not load missions:', e);
+                }
+                
+                // If no data loaded from server, try localStorage and re-upload
+                if (!loadedFromServer) {
+                    const cached = loadFromCache();
+                    if (cached) {
+                        console.log('🔄 Server has no data, restoring from localStorage cache...');
+                        
+                        // Restore data from cache
+                        if (cached.teamsData && cached.teamsData.length > 0) {
+                            teamsData = cached.teamsData;
+                            updateTeamsTable(teamsData);
+                            showStatus('teams', 'warning', `⚠️ Restored ${teamsData.length} teams from browser cache`);
+                        }
+                        
+                        if (cached.participantsData && cached.participantsData.length > 0) {
+                            participantsData = cached.participantsData;
+                            qrData = cached.qrData || cached.participantsData;
+                            updateParticipantsTable(participantsData);
+                            updateQRTable(participantsData);
+                            showStatus('participants', 'warning', `⚠️ Restored ${participantsData.length} participants from browser cache`);
+                        }
+                        
+                        if (cached.targetsData && cached.targetsData.length > 0) {
+                            targetsData = cached.targetsData;
+                            updateTargetsTable(targetsData);
+                            showStatus('targets', 'warning', `⚠️ Restored ${targetsData.length} targets from browser cache`);
+                        }
+                        
+                        // Auto re-upload to server if we have cached data
+                        if (teamsData.length > 0 || participantsData.length > 0 || targetsData.length > 0) {
+                            console.log('📤 Re-uploading cached data to server...');
+                            // Wait a bit then auto-save
+                            setTimeout(() => {
+                                saveConfiguration(true); // silent mode
+                            }, 1000);
+                        }
+                    }
+                } else {
+                    // Server had data, update localStorage cache
+                    saveToCache();
+                }
+                
+                updateSaveButton();
+                
+                // Cache the data loaded from server
+                if (teamsData.length > 0 || participantsData.length > 0 || targetsData.length > 0) {
+                    saveToCache();
+                }
+                
+            } catch (error) {
+                console.error('Error loading data:', error);
+            }
+        }
+
+        // Generate unique user ID
+        function generateUserId() {
+            return Math.random().toString(36).substring(2, 10);
+        }
+
+        // Generate QR codes and download as ZIP
+        async function generateQRCodes() {
+            // Use participantsData if available, otherwise use qrData
+            let data = participantsData.length > 0 ? participantsData : qrData;
+            
+            if (data.length === 0) {
+                alert('❌ No participants data loaded. Please upload a CSV or load current data first.');
+                return;
+            }
+            
+            const generateBtn = document.querySelector('button[onclick="generateQRCodes()"]');
+            const originalText = generateBtn.innerHTML;
+            generateBtn.innerHTML = '⏳ Generating...';
+            generateBtn.disabled = true;
+            
+            try {
+                const zip = new JSZip();
+                const qrFolder = zip.folder("qr_codes");
+                
+                // Create a hidden container for QR generation
+                const container = document.createElement('div');
+                container.style.position = 'absolute';
+                container.style.left = '-9999px';
+                document.body.appendChild(container);
+                
+                // Track generated mappings
+                const qrMappings = [];
+                
+                for (let i = 0; i < data.length; i++) {
+                    const participant = data[i];
+                    
+                    // Generate user_id if not present
+                    const userId = participant.user_id || generateUserId();
+                    participant.user_id = userId;
+                    
+                    // Create QR element
+                    const qrDiv = document.createElement('div');
+                    qrDiv.id = `qr-${i}`;
+                    container.appendChild(qrDiv);
+                    
+                    // Generate QR code with user_id as content
+                    const qr = new QRCode(qrDiv, {
+                        text: userId,
+                        width: 256,
+                        height: 256,
+                        colorDark: "#000000",
+                        colorLight: "#ffffff",
+                        correctLevel: QRCode.CorrectLevel.H
+                    });
+                    
+                    // Wait for QR to render
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    
+                    // Get the canvas and convert to blob
+                    const canvas = qrDiv.querySelector('canvas');
+                    if (canvas) {
+                        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+                        
+                        // Create filename from person's name
+                        const safeName = (participant.full_name || participant.email || `participant_${i}`)
+                            .replace(/[^a-zA-Z0-9\s-]/g, '')
+                            .replace(/\s+/g, '_')
+                            .substring(0, 50);
+                        
+                        qrFolder.file(`${safeName}_${userId}.png`, blob);
+                        
+                        // Track mapping
+                        qrMappings.push({
+                            user_id: userId,
+                            email: participant.email || '',
+                            full_name: participant.full_name || '',
+                            job_title: participant.job_title || '',
+                            genre_color: participant.genre_color || '',
+                            linkedin_url: participant.linkedin_url || ''
+                        });
+                    }
+                    
+                    // Update progress
+                    generateBtn.innerHTML = `⏳ ${i + 1}/${data.length}`;
+                }
+                
+                // Add qr_mapping.csv to the ZIP
+                const csvHeader = 'user_id,email,full_name,job_title,genre_color,linkedin_url\n';
+                const csvContent = csvHeader + qrMappings.map(m => 
+                    `${m.user_id},${m.email},${m.full_name},${m.job_title},${m.genre_color},${m.linkedin_url}`
+                ).join('\n');
+                zip.file('qr_mapping.csv', csvContent);
+                
+                // Clean up
+                document.body.removeChild(container);
+                
+                // Update local data with generated user_ids
+                participantsData = qrMappings;
+                updateParticipantsTable(participantsData);
+                updateQRTable(participantsData);
+                
+                // Cache the updated data
+                saveToCache();
+                
+                // Generate and download ZIP
+                const zipBlob = await zip.generateAsync({ type: 'blob' });
+                saveAs(zipBlob, `qr_codes_${new Date().toISOString().slice(0, 10)}.zip`);
+                
+                generateBtn.innerHTML = '✅ Done!';
+                setTimeout(() => {
+                    generateBtn.innerHTML = originalText;
+                    generateBtn.disabled = false;
+                }, 2000);
+                
+                alert(`✅ Generated ${qrMappings.length} QR codes!\n\nThe ZIP file contains:\n• Individual QR code images (named by person)\n• qr_mapping.csv with all user IDs\n\n💡 Click "Save Configuration" to upload to backend.`);
+                
+                // Enable save button
+                updateSaveButton();
+                
+            } catch (error) {
+                console.error('QR generation error:', error);
+                alert('❌ Error generating QR codes: ' + error.message);
+                generateBtn.innerHTML = originalText;
+                generateBtn.disabled = false;
+            }
+        }
+
+        // Save configuration to backend
+        async function saveConfiguration(silent = false) {
+            const apiUrl = window.API_URL || 'http://127.0.0.1:5000/api';
+            
+            const saveBtn = document.getElementById('saveBtn');
+            const originalText = saveBtn.innerHTML;
+            if (!silent) {
+                saveBtn.innerHTML = '⏳ Saving...';
+                saveBtn.disabled = true;
+            }
+            
+            try {
+                const payload = {};
+                
+                if (teamsData.length > 0) {
+                    payload.teams = teamsData;
+                }
+                
+                if (participantsData.length > 0) {
+                    payload.participants = participantsData;
+                }
+                
+                if (targetsData.length > 0) {
+                    payload.targets = targetsData;
+                }
+                
+                if (Object.keys(payload).length === 0) {
+                    if (!silent) {
+                        alert('❌ No data to save. Please upload CSV files first.');
+                        saveBtn.innerHTML = originalText;
+                        saveBtn.disabled = false;
+                    }
+                    return;
+                }
+                
+                const response = await fetch(`${apiUrl}/admin/upload-config`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    // Always save to localStorage on successful upload
+                    saveToCache();
+                    
+                    if (!silent) {
+                        saveBtn.innerHTML = '✅ Saved!';
+                        const savedInfo = result.updated_memory || result.saved_files || result.saved || [];
+                        const filesInfo = result.saved_files || [];
+                        alert(`✅ Configuration saved!\n\n📊 Updated: ${savedInfo.join(', ') || 'data'}\n📁 Files: ${filesInfo.join(', ') || 'in-memory only'}\n💾 Also cached in browser for auto-restore\n\n🔄 Backend data has been reloaded.\n\nℹ️ Version: Check /api/health for version info`);
+                    } else {
+                        console.log('✅ Silently re-uploaded cached data to server');
+                        showStatus('teams', 'success', '✅ Auto-synced cached data to server');
+                    }
+                } else {
+                    throw new Error(result.message || 'Save failed');
+                }
+                
+            } catch (error) {
+                console.error('Save error:', error);
+                if (!silent) {
+                    alert('❌ Error saving configuration: ' + error.message + '\n\nMake sure the backend server is running.');
+                } else {
+                    console.error('Silent save failed:', error);
+                }
+            }
+            
+            if (!silent) {
+                setTimeout(() => {
+                    saveBtn.innerHTML = originalText;
+                    saveBtn.disabled = false;
+                }, 2000);
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎯 Mystery Networking</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* Light Theme */
+            --bg-gradient: linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 50%, #f0e6f4 100%);
+            --card-bg: rgba(255, 255, 255, 0.95);
+            --card-shadow: 0 25px 80px rgba(0, 0, 0, 0.15);
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --link-bg: #f8fafc;
+            --link-hover-bg: #f1f5f9;
+            --border-color: #e2e8f0;
+            --status-bg: #f0fdf4;
+            --status-color: #16a34a;
+            --status-dot: #22c55e;
+        }
+        
+        [data-theme="dark"] {
+            /* Dark Theme */
+            --bg-gradient: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            --card-bg: rgba(30, 41, 59, 0.95);
+            --card-shadow: 0 25px 80px rgba(0, 0, 0, 0.5);
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --link-bg: rgba(51, 65, 85, 0.8);
+            --link-hover-bg: rgba(71, 85, 105, 0.9);
+            --border-color: rgba(148, 163, 184, 0.2);
+            --status-bg: rgba(34, 197, 94, 0.15);
+            --status-color: #4ade80;
+            --status-dot: #4ade80;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            min-height: 100vh;
+            background: var(--bg-gradient);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 500px;
+        }
+        
+        .hero-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 32px;
+            padding: 48px 40px;
+            box-shadow: var(--card-shadow);
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        
+        .theme-switcher {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            border-radius: 50px;
+            padding: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .theme-toggle {
+            background: none;
+            border: none;
+            color: var(--text-primary);
+            font-size: 1.2em;
+            padding: 8px 12px;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .theme-toggle:hover {
+            background: var(--link-hover-bg);
+        }
+        
+        .theme-toggle.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        
+        .logo {
+            font-size: 4rem;
+            margin-bottom: 16px;
+            animation: float 3s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        h1 {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+        
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1rem;
+            margin-bottom: 32px;
+        }
+        
+        .apps-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .app-link {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px 20px;
+            background: var(--link-bg);
+            border-radius: 16px;
+            text-decoration: none;
+            color: var(--text-primary);
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+        
+        .app-link:hover {
+            background: var(--link-hover-bg);
+            border-color: #667eea;
+            transform: translateX(4px);
+        }
+        
+        .app-link.primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        
+        .app-link.primary:hover {
+            transform: translateX(4px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+        
+        .app-icon {
+            font-size: 2rem;
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .app-info {
+            flex: 1;
+            text-align: left;
+        }
+        
+        .app-title {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+        
+        .app-desc {
+            font-size: 0.8rem;
+            opacity: 0.8;
+            margin-top: 2px;
+        }
+        
+        .app-arrow {
+            font-size: 1.2rem;
+            opacity: 0.5;
+        }
+        
+        .footer {
+            margin-top: 32px;
+            padding-top: 24px;
+            border-top: 1px solid var(--border-color);
+        }
+        
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--status-bg);
+            color: var(--status-color);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--status-dot);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        @media (max-width: 480px) {
+            .hero-card {
+                padding: 32px 24px;
+                border-radius: 24px;
+            }
+            
+            h1 {
+                font-size: 1.6rem;
+            }
+            
+            .logo {
+                font-size: 3rem;
+            }
+            
+            .app-icon {
+                width: 44px;
+                height: 44px;
+                font-size: 1.6rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Theme Switcher -->
+    <div class="theme-switcher">
+        <button class="theme-toggle active" onclick="setTheme('light', event)" title="Light Mode">
+            ☀️
+        </button>
+        <button class="theme-toggle" onclick="setTheme('dark', event)" title="Dark Mode">
+            🌙
+        </button>
+    </div>
+    
+    <div class="container">
+        <div class="hero-card">
+            <div class="logo">🎯</div>
+            <h1>Mystery Networking</h1>
+            <p class="subtitle">Connect, scan & discover your mystery target</p>
+            
+            <div class="apps-grid">
+                <a href="participant.html" class="app-link primary">
+                    <div class="app-icon">🎯</div>
+                    <div class="app-info">
+                        <div class="app-title">Participant App</div>
+                        <div class="app-desc">Scan QR codes & find your target</div>
+                    </div>
+                    <span class="app-arrow">→</span>
+                </a>
+                
+                <a href="dashboard.html" class="app-link">
+                    <div class="app-icon">📊</div>
+                    <div class="app-info">
+                        <div class="app-title">Live Dashboard</div>
+                        <div class="app-desc">Real-time leaderboard & stats</div>
+                    </div>
+                    <span class="app-arrow">→</span>
+                </a>
+                
+                <a href="admin.html" class="app-link">
+                    <div class="app-icon">👥</div>
+                    <div class="app-info">
+                        <div class="app-title">Admin Panel</div>
+                        <div class="app-desc">Manage event & participants</div>
+                    </div>
+                    <span class="app-arrow">→</span>
+                </a>
+                
+                <a href="admin-setup.html" class="app-link">
+                    <div class="app-icon">⚙️</div>
+                    <div class="app-info">
+                        <div class="app-title">Event Setup</div>
+                        <div class="app-desc">Upload CSV & generate QR codes</div>
+                    </div>
+                    <span class="app-arrow">→</span>
+                </a>
+                
+                <a href="podium.html" class="app-link">
+                    <div class="app-icon">🏆</div>
+                    <div class="app-info">
+                        <div class="app-title">Winners Podium</div>
+                        <div class="app-desc">View top networkers & celebrate</div>
+                    </div>
+                    <span class="app-arrow">→</span>
+                </a>
+            </div>
+            
+            <div class="footer">
+                <div class="status-badge">
+                    <span class="status-dot"></span>
+                    System Online
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Theme management
+        function setTheme(theme, e) {
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('mystery-theme', theme);
+            
+            // Update toggle buttons
+            document.querySelectorAll('.theme-toggle').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            if (e && e.target) e.target.closest('.theme-toggle').classList.add('active');
+        }
+        
+        // Load saved theme on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedTheme = localStorage.getItem('mystery-theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            
+            // Update toggle buttons
+            document.querySelectorAll('.theme-toggle').forEach(btn => {
+                btn.classList.remove('active');
+                if ((savedTheme === 'light' && btn.textContent.includes('☀️')) ||
+                    (savedTheme === 'dark' && btn.textContent.includes('🌙'))) {
+                    btn.classList.add('active');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

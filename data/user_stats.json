@@ -1,0 +1,26 @@
+{
+  "user_001": {
+    "total_score": 0,
+    "scanned_users": [],
+    "found_target": false,
+    "completed_targets": []
+  },
+  "user_002": {
+    "total_score": 0,
+    "scanned_users": [],
+    "found_target": false,
+    "completed_targets": []
+  },
+  "user_003": {
+    "total_score": 0,
+    "scanned_users": [],
+    "found_target": false,
+    "completed_targets": []
+  },
+  "user_004": {
+    "total_score": 0,
+    "scanned_users": [],
+    "found_target": false,
+    "completed_targets": []
+  }
+}
