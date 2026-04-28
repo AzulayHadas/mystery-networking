@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" dir="rtl">
+<html lang="he" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -178,9 +178,20 @@
             }
         }
         
-        function resetAllScores() {
+        async function resetAllScores() {
             if (confirm('האם אתה בטוח שברצונך לאפס את כל הניקודים?')) {
-                alert('פיצר זה לא מימש עדיין - להישאר בטוח!');
+                try {
+                    const response = await fetch(`${API_URL}/admin/reset-stats`, { method: 'POST' });
+                    if (response.ok) {
+                        alert('ניקודים אופסו בהצלחה!');
+                        refreshStats();
+                    } else {
+                        const data = await response.json();
+                        alert('שגיאה: ' + (data.error || response.status));
+                    }
+                } catch (e) {
+                    alert('לא ניתן להתחבר לשרת');
+                }
             }
         }
         

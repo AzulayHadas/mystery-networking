@@ -9,6 +9,7 @@ let currentUser = null;
 let html5QrcodeScanner = null;
 let isScanning = false;
 let lastScanResult = null;
+let pendingConversationBonus = false; // guard: only true after a successful scan
 
 console.log('✅ Participant app variables initialized');
 
@@ -67,11 +68,15 @@ async function login() {
     try {
         console.log('🚀 Making login request to:', `${apiUrl}/auth/login`);
         
+        const loginController = new AbortController();
+        const loginTimeout = setTimeout(() => loginController.abort(), 10000);
         const response = await fetch(`${apiUrl}/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email })
+            body: JSON.stringify({ email }),
+            signal: loginController.signal
         });
+        clearTimeout(loginTimeout);
         
         console.log('📡 Response status:', response.status);
         
@@ -189,74 +194,139 @@ function initializeApp() {
 async function loadMission() {
     console.log('📋 Loading all missions for user:', currentUser.id);
     const missionContent = document.getElementById('missionContent');
-    
+
+    const ALLOWED_BG_COLORS = ['red', 'blue', 'green', 'yellow', 'purple', 'orange', 'pink', 'gray'];
+
     try {
-        // Get all targets info from backend for current user
         const response = await fetch(`${API_URL}/user/${currentUser.id}/targets`);
         const data = await response.json();
-        
         const targets = data.targets || [];
-        
+
+        // Clear previous content safely
+        missionContent.textContent = '';
+
         if (targets.length === 0) {
-            missionContent.innerHTML = `
-                <div class="no-missions">
-                    <h3>📝 אין משימות זמינות</h3>
-                    <p>לא נמצאו יעדים עבור המשתתף הזה</p>
-                </div>
-            `;
+            const noMissions = document.createElement('div');
+            noMissions.className = 'no-missions';
+            const h3 = document.createElement('h3');
+            h3.textContent = '📝 אין משימות זמינות';
+            const p = document.createElement('p');
+            p.textContent = 'לא נמצאו יעדים עבור המשתתף הזה';
+            noMissions.appendChild(h3);
+            noMissions.appendChild(p);
+            missionContent.appendChild(noMissions);
             return;
         }
 
-        // Show all targets in a list
-        let targetsHTML = `<div class="missions-list">
-            <h3>🎯 רשימת המשימות שלך</h3>
-            <p class="missions-intro">מצא את האנשים הבאים וסרוק את הקודים שלהם:</p>
-        `;
-        
-        targets.forEach((target, index) => {
+        const list = document.createElement('div');
+        list.className = 'missions-list';
+
+        const listTitle = document.createElement('h3');
+        listTitle.textContent = '🎯 רשימת המשימות שלך';
+        list.appendChild(listTitle);
+
+        const intro = document.createElement('p');
+        intro.className = 'missions-intro';
+        intro.textContent = 'מצא את האנשים הבאים וסרוק את הקודים שלהם:';
+        list.appendChild(intro);
+
+        targets.forEach((target) => {
             const statusIcon = target.found ? '✅' : '🔍';
             const statusClass = target.found ? 'completed-mission' : 'pending-mission';
             const statusText = target.found ? 'הושלמה!' : 'ממתין';
-            
-            targetsHTML += `
-                <div class="mission-item ${statusClass}">
-                    <div class="mission-header">
-                        <span class="mission-status">${statusIcon} ${statusText}</span>
-                        <span class="mission-points">${target.points} נקודות</span>
-                    </div>
-                    <div class="mission-details">
-                        <h4 class="target-name">${target.target_name}</h4>
-                        <p class="target-job">${target.target_job}</p>
-                        <p class="target-color">צבע תג: <span class="color-badge" style="background-color: ${target.target_color}; color: white; padding: 2px 6px; border-radius: 8px; font-size: 0.8em;">${getColorName(target.target_color)}</span></p>
-                        
-                        ${!target.found ? `
-                            <div class="conversation-tip">
-                                <h5>💡 רמז שיחה:</h5>
-                                <p>${target.convo_tip}</p>
-                            </div>
-                        ` : ''}
-                    </div>
-                </div>
-            `;
+
+            const item = document.createElement('div');
+            item.className = `mission-item ${statusClass}`;
+
+            // Header row
+            const header = document.createElement('div');
+            header.className = 'mission-header';
+
+            const statusSpan = document.createElement('span');
+            statusSpan.className = 'mission-status';
+            statusSpan.textContent = `${statusIcon} ${statusText}`;
+
+            const pointsSpan = document.createElement('span');
+            pointsSpan.className = 'mission-points';
+            pointsSpan.textContent = `${parseInt(target.points) || 0} נקודות`;
+
+            header.appendChild(statusSpan);
+            header.appendChild(pointsSpan);
+
+            // Detail rows
+            const details = document.createElement('div');
+            details.className = 'mission-details';
+
+            const nameEl = document.createElement('h4');
+            nameEl.className = 'target-name';
+            nameEl.textContent = target.target_name;
+
+            const jobEl = document.createElement('p');
+            jobEl.className = 'target-job';
+            jobEl.textContent = target.target_job;
+
+            const colorEl = document.createElement('p');
+            colorEl.className = 'target-color';
+            colorEl.textContent = 'צבע תג: ';
+
+            const badge = document.createElement('span');
+            badge.className = 'color-badge';
+            const safeColor = ALLOWED_BG_COLORS.includes(target.target_color) ? target.target_color : 'gray';
+            badge.style.backgroundColor = safeColor;
+            badge.style.color = 'white';
+            badge.style.padding = '2px 6px';
+            badge.style.borderRadius = '8px';
+            badge.style.fontSize = '0.8em';
+            badge.textContent = getColorName(safeColor);
+            colorEl.appendChild(badge);
+
+            details.appendChild(nameEl);
+            details.appendChild(jobEl);
+            details.appendChild(colorEl);
+
+            if (!target.found && target.convo_tip) {
+                const tip = document.createElement('div');
+                tip.className = 'conversation-tip';
+                const tipTitle = document.createElement('h5');
+                tipTitle.textContent = '💡 רמז שיחה:';
+                const tipText = document.createElement('p');
+                tipText.textContent = target.convo_tip;
+                tip.appendChild(tipTitle);
+                tip.appendChild(tipText);
+                details.appendChild(tip);
+            }
+
+            item.appendChild(header);
+            item.appendChild(details);
+            list.appendChild(item);
         });
-        
-        targetsHTML += `</div>
-            <div class="scan-instructions">
-                <p>📱 <strong>איך לסרוק:</strong> לחץ על "התחל סריקה" ופנה המצלמה לקוד QR</p>
-                <p>🎉 תקבל נקודות על כל יעד שתמצא!</p>
-            </div>
-        `;
-        
-        missionContent.innerHTML = targetsHTML;
-        
+
+        missionContent.appendChild(list);
+
+        const instructions = document.createElement('div');
+        instructions.className = 'scan-instructions';
+        const p1 = document.createElement('p');
+        p1.textContent = '📱 איך לסרוק: לחץ על "התחל סריקה" ופנה המצלמה לקוד QR';
+        const p2 = document.createElement('p');
+        p2.textContent = '🎉 תקבל נקודות על כל יעד שתמצא!';
+        instructions.appendChild(p1);
+        instructions.appendChild(p2);
+        missionContent.appendChild(instructions);
+
     } catch (error) {
         console.error('Error loading missions:', error);
-        missionContent.innerHTML = `
-            <div class="error-message">
-                <p style="color: #ef4444; font-weight: bold;">❌ שגיאה בטעינת המשימות</p>
-                <p style="font-size: 0.9em; color: #2d3748;">בדוק את החיבור לאינטרנט</p>
-            </div>
-        `;
+        missionContent.textContent = '';
+        const errDiv = document.createElement('div');
+        errDiv.className = 'error-message';
+        const errTitle = document.createElement('p');
+        errTitle.style.cssText = 'color:#ef4444;font-weight:bold;';
+        errTitle.textContent = '❌ שגיאה בטעינת המשימות';
+        const errDetail = document.createElement('p');
+        errDetail.style.cssText = 'font-size:0.9em;color:#2d3748;';
+        errDetail.textContent = 'בדוק את החיבור לאינטרנט';
+        errDiv.appendChild(errTitle);
+        errDiv.appendChild(errDetail);
+        missionContent.appendChild(errDiv);
     }
 }
 
@@ -308,6 +378,7 @@ async function startScanning() {
     console.log('📷 Starting QR scanner...');
     qrReader.style.display = 'block';
     isScanning = true;
+    _scanErrorCount = 0;
     
     // Check if Html5Qrcode is available
     if (typeof Html5Qrcode === 'undefined') {
@@ -438,8 +509,13 @@ async function onScanSuccess(decodedText) {
     }, 3000);
 }
 
+let _scanErrorCount = 0;
 function onScanError(errorMessage) {
-    // Ignore errors (they happen constantly while scanning)
+    // Most errors are transient frame-decode noise — only surface persistent failures
+    _scanErrorCount++;
+    if (_scanErrorCount === 60) { // ~6 seconds at 10fps with no successful decode
+        showNotification('📷 לא מצליח לזהות קוד — ודא שהקוד ממורכז ומואר');
+    }
 }
 
 // Manual QR testing function
@@ -471,14 +547,18 @@ async function processScan(scannedId) {
         showLoading();
         
         // Send to backend
+        const scanController = new AbortController();
+        const scanTimeout = setTimeout(() => scanController.abort(), 10000);
         const response = await fetch(`${API_URL}/scan`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 scanner_id: currentUser.id,
                 scanned_id: scannedId
-            })
+            }),
+            signal: scanController.signal
         });
+        clearTimeout(scanTimeout);
         
         const data = await response.json();
         
@@ -493,6 +573,7 @@ async function processScan(scannedId) {
         updateScore(data.total_score);
         
         // Show result modal
+        pendingConversationBonus = true;
         showResult(data);
         
         // Reload mission if target found
@@ -580,8 +661,11 @@ function closeResult() {
     // Refresh the mission list to show updated completion status
     loadMission();
     
-    // Award conversation completion bonus
-    awardConversationBonus();
+    // Award conversation completion bonus only once per scan
+    if (pendingConversationBonus) {
+        pendingConversationBonus = false;
+        awardConversationBonus();
+    }
 }
 
 async function awardConversationBonus() {

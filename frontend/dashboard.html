@@ -42,7 +42,7 @@
         
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 20px;
             margin-bottom: 30px;
         }
@@ -172,6 +172,12 @@
             color: #ff6b6b;
         }
 
+        /* Focus indicators */
+        button:focus-visible, a:focus-visible {
+            outline: 3px solid #ffd700;
+            outline-offset: 2px;
+        }
+
         /* Dark Mode */
         [data-theme="dark"] body {
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
@@ -185,24 +191,24 @@
             <p>Live Event Statistics</p>
         </div>
         
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-number" id="totalParticipants">-</div>
+        <div class="stats-grid" role="region" aria-label="Live event statistics">
+            <div class="stat-card" role="img" aria-label="Total participants">
+                <div class="stat-number" id="totalParticipants" aria-live="polite">-</div>
                 <div class="stat-label">Total Participants</div>
             </div>
             
-            <div class="stat-card">
-                <div class="stat-number" id="totalScans">-</div>
+            <div class="stat-card" role="img" aria-label="Total scans">
+                <div class="stat-number" id="totalScans" aria-live="polite">-</div>
                 <div class="stat-label">Total Scans</div>
             </div>
             
-            <div class="stat-card">
-                <div class="stat-number" id="activeNow">-</div>
+            <div class="stat-card" role="img" aria-label="Active now">
+                <div class="stat-number" id="activeNow" aria-live="polite">-</div>
                 <div class="stat-label">Active Now</div>
             </div>
             
-            <div class="stat-card">
-                <div class="stat-number" id="avgScore">-</div>
+            <div class="stat-card" role="img" aria-label="Completion rate">
+                <div class="stat-number" id="avgScore" aria-live="polite">-</div>
                 <div class="stat-label">Completion Rate</div>
             </div>
         </div>

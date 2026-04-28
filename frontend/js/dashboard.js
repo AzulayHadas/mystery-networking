@@ -192,29 +192,51 @@ function updateStatsDisplay(data) {
 function updateColorProgress(colorStats) {
     const progressContainer = document.getElementById('colorProgress');
     if (!progressContainer) return;
-    
-    let progressHTML = '';
-    
-    // Use teams data from CSV instead of hardcoded
+
+    const ALLOWED_COLORS = ['red','blue','green','yellow','purple','orange','pink','gray','black','white'];
+
+    progressContainer.textContent = '';
+
     for (const team of teamsData) {
         const stats = colorStats[team.color] || { total: 0, active: 0 };
         const percentage = stats.total > 0 ? Math.round((stats.active / stats.total) * 100) : 0;
-        
-        progressHTML += `
-            <div class="color-progress" style="border-left: 4px solid ${team.color}">
-                <div class="color-info">
-                    <span class="color-name">${team.emoji} ${team.name}</span>
-                    <span class="color-stats">${stats.active}/${stats.total} active</span>
-                </div>
-                <div class="progress-bar">
-                    <div class="progress-fill" style="width: ${percentage}%; background-color: ${team.color}"></div>
-                </div>
-                <span class="percentage">${percentage}%</span>
-            </div>
-        `;
+        const safeColor = ALLOWED_COLORS.includes(team.color) ? team.color : 'gray';
+
+        const row = document.createElement('div');
+        row.className = 'color-progress';
+        row.style.borderLeft = `4px solid ${safeColor}`;
+
+        const info = document.createElement('div');
+        info.className = 'color-info';
+
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'color-name';
+        nameSpan.textContent = `${team.emoji} ${team.name}`;
+
+        const statsSpan = document.createElement('span');
+        statsSpan.className = 'color-stats';
+        statsSpan.textContent = `${stats.active}/${stats.total} active`;
+
+        info.appendChild(nameSpan);
+        info.appendChild(statsSpan);
+
+        const barWrap = document.createElement('div');
+        barWrap.className = 'progress-bar';
+        const fill = document.createElement('div');
+        fill.className = 'progress-fill';
+        fill.style.width = `${percentage}%`;
+        fill.style.backgroundColor = safeColor;
+        barWrap.appendChild(fill);
+
+        const pctSpan = document.createElement('span');
+        pctSpan.className = 'percentage';
+        pctSpan.textContent = `${percentage}%`;
+
+        row.appendChild(info);
+        row.appendChild(barWrap);
+        row.appendChild(pctSpan);
+        progressContainer.appendChild(row);
     }
-    
-    progressContainer.innerHTML = progressHTML;
 }
 
 async function updateLeaderboard() {
@@ -269,40 +291,80 @@ async function updateLeaderboardFromAPI() {
 
 function updateLeaderboardDisplay() {
     const leaderboardContainer = document.getElementById('leaderboardContent');
-    
+
+    leaderboardContainer.textContent = '';
+
     if (leaderboardData.length === 0) {
-        leaderboardContainer.innerHTML = '<div class="no-data">No activity yet... Start networking! 🚀</div>';
+        const msg = document.createElement('div');
+        msg.className = 'no-data';
+        msg.textContent = 'No activity yet... Start networking! 🚀';
+        leaderboardContainer.appendChild(msg);
         return;
     }
-    
-    let html = '<div class="leaderboard-list">';
-    
-    const allowedColors = ['red', 'blue', 'green', 'yellow', 'purple', 'orange', 'pink', 'gray'];
-    
+
+    const ALLOWED_COLORS = ['red','blue','green','yellow','purple','orange','pink','gray'];
+    const list = document.createElement('div');
+    list.className = 'leaderboard-list';
+
     leaderboardData.forEach((player, index) => {
         const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
-        const targetFoundIcon = player.found_target ? '🎯' : '';
-        const safeName = (player.name || '').replace(/[<>&"']/g, '');
-        const safeColor = allowedColors.includes(player.color) ? player.color : 'gray';
-        
-        html += `
-            <div class="leaderboard-item ${index < 3 ? 'top-three' : ''}">
-                <div class="rank">${medal}</div>
-                <div class="player-info">
-                    <div class="player-name">${safeName} ${targetFoundIcon}</div>
-                    <div class="player-details">
-                        <span class="score">${parseInt(player.score) || 0} points</span>
-                        <span class="scans">${parseInt(player.scanned_count) || 0} scans</span>
-                        ${player.found_target ? '<span class="target-found">Target Found!</span>' : ''}
-                    </div>
-                </div>
-                <div class="player-color" style="background-color: ${safeColor}"></div>
-            </div>
-        `;
+        const safeColor = ALLOWED_COLORS.includes(player.color) ? player.color : 'gray';
+
+        const item = document.createElement('div');
+        item.className = `leaderboard-item${index < 3 ? ' top-three' : ''}`;
+
+        const rankDiv = document.createElement('div');
+        rankDiv.className = 'rank';
+        rankDiv.textContent = medal;
+
+        const infoDiv = document.createElement('div');
+        infoDiv.className = 'player-info';
+
+        const nameDiv = document.createElement('div');
+        nameDiv.className = 'player-name';
+        nameDiv.textContent = player.name || 'Anonymous';
+        if (player.found_target) {
+            const icon = document.createElement('span');
+            icon.setAttribute('aria-label', 'Target found');
+            icon.textContent = ' 🎯';
+            nameDiv.appendChild(icon);
+        }
+
+        const detailsDiv = document.createElement('div');
+        detailsDiv.className = 'player-details';
+
+        const scoreSpan = document.createElement('span');
+        scoreSpan.className = 'score';
+        scoreSpan.textContent = `${parseInt(player.score) || 0} points`;
+
+        const scansSpan = document.createElement('span');
+        scansSpan.className = 'scans';
+        scansSpan.textContent = `${parseInt(player.scanned_count) || 0} scans`;
+
+        detailsDiv.appendChild(scoreSpan);
+        detailsDiv.appendChild(scansSpan);
+
+        if (player.found_target) {
+            const foundSpan = document.createElement('span');
+            foundSpan.className = 'target-found';
+            foundSpan.textContent = 'Target Found!';
+            detailsDiv.appendChild(foundSpan);
+        }
+
+        infoDiv.appendChild(nameDiv);
+        infoDiv.appendChild(detailsDiv);
+
+        const colorDot = document.createElement('div');
+        colorDot.className = 'player-color';
+        colorDot.style.backgroundColor = safeColor;
+
+        item.appendChild(rankDiv);
+        item.appendChild(infoDiv);
+        item.appendChild(colorDot);
+        list.appendChild(item);
     });
-    
-    html += '</div>';
-    leaderboardContainer.innerHTML = html;
+
+    leaderboardContainer.appendChild(list);
 }
 
 function showError(message) {
@@ -316,12 +378,15 @@ function showError(message) {
     
     // Show error in leaderboard
     const leaderboardContainer = document.getElementById('leaderboardContent');
-    leaderboardContainer.innerHTML = `
-        <div class="error">
-            ⚠️ ${message}
-            <br><small>Retrying in 10 seconds...</small>
-        </div>
-    `;
+    leaderboardContainer.textContent = '';
+    const errDiv = document.createElement('div');
+    errDiv.className = 'error';
+    errDiv.textContent = `⚠️ ${message}`;
+    const small = document.createElement('small');
+    small.textContent = 'Retrying in 10 seconds...';
+    errDiv.appendChild(document.createElement('br'));
+    errDiv.appendChild(small);
+    leaderboardContainer.appendChild(errDiv);
 }
 
 // Expose functions for debugging
